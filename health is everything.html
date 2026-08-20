@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Video Tube</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:Arial,sans-serif;background:#f0f2f5;display:flex;height:100vh;overflow:hidden;}
+        
+        .sidebar{width:250px;background:#1a1a2e;color:#fff;height:100%;position:fixed;left:0;top:0;transition:0.3s;z-index:1000;overflow-y:auto;}
+        .sidebar.closed{left:-250px;}
+        .sidebar-header{padding:20px;font-size:22px;font-weight:bold;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;}
+        .close-btn{background:none;border:none;color:#fff;font-size:28px;cursor:pointer;}
+        .menu-item{padding:15px 20px;border-bottom:1px solid #2a2a4a;cursor:pointer;transition:0.2s;display:flex;align-items:center;gap:12px;}
+        .menu-item:hover{background:#16213e;}
+        .menu-item.active{background:#0f3460;}
+        
+        .main{flex:1;margin-left:250px;padding:20px;transition:0.3s;height:100vh;overflow-y:auto;background:#f0f2f5;}
+        .main.expanded{margin-left:0;}
+        
+        .topbar{display:flex;justify-content:space-between;align-items:center;padding-bottom:20px;border-bottom:1px solid #ddd;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+        .topbar-left{display:flex;align-items:center;gap:15px;}
+        .menu-icon{font-size:28px;cursor:pointer;background:none;border:none;color:#1a1a2e;}
+        .topbar-right{display:flex;align-items:center;gap:12px;}
+        .user-badge{background:#1a1a2e;color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
+        .user-badge .role-icon{font-size:16px;}
+        .role-selector{display:flex;gap:8px;align-items:center;}
+        .role-selector select{padding:6px 12px;border-radius:20px;border:2px solid #ddd;font-size:13px;font-weight:600;cursor:pointer;background:#fff;transition:0.3s;}
+        .role-selector select:focus{outline:none;border-color:#1a73e8;}
+        .role-selector label{font-size:13px;color:#666;font-weight:600;}
+        
+        .health-banner{background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff;padding:15px 25px;border-radius:10px;text-align:center;font-size:22px;font-weight:bold;margin-bottom:20px;box-shadow:0 4px 15px rgba(46,125,50,0.3);}
+        .health-banner span{font-size:28px;margin-right:10px;}
+        
+        .page{display:none;}
+        .page.active{display:block;}
+        
+        .upload-box{background:#fff;padding:30px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.1);max-width:800px;margin:0 auto;}
+        .upload-box h2{color:#1a1a2e;margin-bottom:5px;font-size:24px;}
+        .upload-box .subtitle{color:#666;margin-bottom:20px;font-size:14px;}
+        .upload-tabs{display:flex;gap:10px;margin-bottom:20px;border-bottom:2px solid #e0e0e0;}
+        .upload-tab{padding:12px 24px;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:0.3s;}
+        .upload-tab.active{color:#1a73e8;border-bottom-color:#1a73e8;}
+        .upload-tab:hover{color:#1a73e8;}
+        .upload-content{display:none;padding:20px 0;}
+        .upload-content.active{display:block;}
+        
+        .upload-area{background:#f8f9fa;border:2px dashed #ddd;border-radius:12px;padding:40px;text-align:center;transition:0.3s;cursor:pointer;}
+        .upload-area:hover{border-color:#1a73e8;background:#f0f4ff;}
+        .upload-area .icon{font-size:48px;color:#1a73e8;}
+        .upload-area h3{color:#1a1a2e;margin:10px 0;}
+        .upload-area p{color:#888;font-size:14px;}
+        
+        input[type="file"]{display:none;}
+        .btn{background:#1a73e8;color:#fff;padding:12px 28px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;border:none;transition:0.3s;display:inline-block;}
+        .btn:hover{background:#1557b0;}
+        .btn-secondary{background:#666;color:#fff;padding:12px 28px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;border:none;transition:0.3s;display:inline-block;}
+        .btn-secondary:hover{background:#555;}
+        .btn-success{background:#2e7d32;color:#fff;padding:12px 28px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;border:none;transition:0.3s;display:inline-block;}
+        .btn-success:hover{background:#1b5e20;}
+        .btn-danger{background:#c62828;color:#fff;padding:12px 28px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;border:none;transition:0.3s;display:inline-block;}
+        .btn-danger:hover{background:#b71c1c;}
+        .btn-warning{background:#ed6c02;color:#fff;padding:12px 28px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;border:none;transition:0.3s;display:inline-block;}
+        .btn-warning:hover{background:#c55a02;}
+        
+        #msg{margin-top:15px;font-weight:500;font-size:14px;}
+        .ok{color:#2e7d32;}
+        .err{color:#c62828;}
+        #videoPreview{margin-top:20px;width:100%;max-height:400px;border-radius:8px;background:#000;display:none;object-fit:contain;}
+        
+        .upload-options{display:flex;gap:15px;justify-content:center;margin:15px 0;flex-wrap:wrap;}
+        .url-input-container{display:none;margin:15px 0;}
+        .url-input-container input{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}
+        .url-input-container input:focus{outline:none;border-color:#1a73e8;}
+        
+        .title-input{margin-top:10px;width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:14px;transition:0.3s;display:block;}
+        .title-input:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 3px rgba(26,115,232,0.1);}
+        .title-input::placeholder{color:#999;}
+        
+        .description-input{margin-top:10px;width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:14px;transition:0.3s;display:block;min-height:120px;font-family:Arial,sans-serif;resize:vertical;}
+        .description-input:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 3px rgba(26,115,232,0.1);}
+        .description-input::placeholder{color:#999;}
+        
+        .feed-container{display:flex;flex-direction:column;gap:0;margin-top:20px;}
+        
+        .feed-header{display:flex;gap:0;border-bottom:2px solid #e0e0e0;margin-bottom:20px;background:#fff;border-radius:12px 12px 0 0;padding:0 20px;}
+        .feed-tab{padding:15px 30px;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:0.3s;font-size:15px;background:none;border-top:none;border-left:none;border-right:none;}
+        .feed-tab:hover{color:#1a73e8;}
+        .feed-tab.active{color:#1a73e8;border-bottom-color:#1a73e8;}
+        .feed-tab .count{font-weight:400;color:#888;font-size:13px;}
+        
+        .feed-content{display:block;}
+        .feed-content.hidden{display:none;}
+        
+        .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding:20px 0;}
+        .video-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.06);transition:0.3s;display:flex;flex-direction:column;}
+        .video-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.12);transform:translateY(-3px);}
+        .video-card .video-wrapper{width:100%;background:#000;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative;cursor:pointer;min-height:180px;}
+        .video-card video{width:100%;height:auto;max-height:300px;object-fit:contain;display:block;}
+        .video-card .thumbnail-overlay{position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);transition:0.3s;}
+        .video-card .thumbnail-overlay:hover{background:rgba(0,0,0,0.25);}
+        .video-card .thumbnail-overlay img{width:100%;height:100%;object-fit:cover;}
+        .video-card .thumbnail-overlay .play-icon{position:absolute;font-size:50px;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.7);pointer-events:none;transition:0.3s;}
+        .video-card .thumbnail-overlay:hover .play-icon{transform:scale(1.1);}
+        
+        .video-card .info{padding:12px 14px;}
+        .video-card .info .title-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+        .video-card .info .title-row .title{font-weight:600;font-size:14px;color:#1a1a2e;word-break:break-word;flex:1;margin-right:10px;line-height:1.3;}
+        .video-card .info .title-row .video-actions{display:flex;gap:2px;align-items:center;flex-shrink:0;}
+        
+        .action-btn{background:none;border:none;font-size:18px;cursor:pointer;transition:0.2s;padding:4px;color:#666;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
+        .action-btn:hover{background:#f0f2f5;color:#1a1a2e;}
+        .action-btn.share-btn{color:#1a73e8;}
+        .action-btn.share-btn:hover{background:#e8f0fe;}
+        .action-btn.download-btn{color:#2e7d32;}
+        .action-btn.download-btn:hover{background:#e8f5e9;}
+        
+        .fav-btn{background:none;border:none;font-size:18px;cursor:pointer;transition:0.2s;padding:4px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+        .fav-btn.favorited{color:#e74c3c;}
+        .fav-btn:not(.favorited){color:#ccc;}
+        .fav-btn:hover:not(.favorited){background:#fce4ec;color:#e74c3c;}
+        .fav-btn.favorited:hover{background:#fce4ec;}
+        
+        .video-card .info .meta-row{display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid #f0f0f0;flex-wrap:wrap;gap:4px;}
+        .video-card .info .meta-row .meta{font-size:11px;color:#888;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+        .video-card .info .meta-row .meta .size{background:#f0f0f0;padding:2px 8px;border-radius:8px;}
+        .video-card .info .meta-row .meta .aspect{background:#e3f2fd;padding:2px 8px;border-radius:8px;color:#1565c0;font-weight:500;}
+        .video-card .info .meta-row .meta .badge{font-size:10px;padding:2px 8px;border-radius:8px;}
+        .badge-owner{background:#ffd700;color:#333;}
+        .badge-admin{background:#e74c3c;color:#fff;}
+        .badge-user{background:#e0e0e0;color:#666;}
+        .badge-editor{background:#2196f3;color:#fff;}
+        
+        .blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding:20px 0;}
+        .blog-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.06);transition:0.3s;}
+        .blog-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.12);transform:translateY(-3px);}
+        .blog-card .blog-image-wrapper{width:100%;background:#f5f5f5;display:flex;justify-content:center;align-items:center;overflow:hidden;max-height:200px;}
+        .blog-card .blog-image{width:100%;height:auto;display:block;object-fit:contain;max-height:200px;}
+        .blog-card .blog-content{padding:14px;}
+        .blog-card .blog-title{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:6px;line-height:1.3;}
+        .blog-card .blog-description{font-size:13px;color:#555;line-height:1.5;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+        .blog-card .blog-meta{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #f0f0f0;flex-wrap:wrap;gap:4px;}
+        .blog-card .blog-meta .blog-date{font-size:11px;color:#999;}
+        .blog-card .blog-meta .blog-badge{font-size:10px;padding:3px 10px;border-radius:8px;font-weight:600;}
+        .blog-badge-owner{background:#ffd700;color:#333;}
+        .blog-badge-admin{background:#e74c3c;color:#fff;}
+        .blog-badge-user{background:#e0e0e0;color:#666;}
+        .blog-badge-editor{background:#2196f3;color:#fff;}
+        
+        .blog-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+        .blog-actions .btn{flex:1;padding:6px;font-size:12px;min-width:60px;}
+        
+        .blog-full-description{display:none;margin-top:8px;padding:10px;background:#f8f9fa;border-radius:6px;font-size:13px;line-height:1.6;color:#333;}
+        .blog-full-description.show{display:block;}
+        .read-more-btn{background:none;border:none;color:#1a73e8;cursor:pointer;font-weight:600;font-size:13px;padding:3px 0;}
+        .read-more-btn:hover{text-decoration:underline;}
+        
+        .dropdown-menu{position:relative;display:inline-block;}
+        .dropdown-content{display:none;position:absolute;right:0;top:100%;background:#fff;min-width:170px;box-shadow:0 8px 30px rgba(0,0,0,0.15);border-radius:10px;z-index:100;padding:5px 0;margin-top:5px;}
+        .dropdown-content.show{display:block;}
+        .dropdown-content .dropdown-item{padding:8px 16px;cursor:pointer;font-size:13px;color:#333;display:flex;align-items:center;gap:10px;transition:0.2s;border:none;background:none;width:100%;text-align:left;border-radius:0;}
+        .dropdown-content .dropdown-item:hover{background:#f5f5f5;}
+        .dropdown-content .dropdown-item.danger{color:#c62828;}
+        .dropdown-content .dropdown-item.danger:hover{background:#ffebee;}
+        .dropdown-content .dropdown-item .icon{font-size:15px;width:20px;text-align:center;}
+        .dropdown-content .dropdown-item.disabled{opacity:0.5;cursor:not-allowed;}
+        .dropdown-content .dropdown-item.disabled:hover{background:none;}
+        
+        .empty-msg{text-align:center;color:#888;padding:40px;font-size:15px;background:#f8f9fa;border-radius:10px;grid-column:1/-1;}
+        
+        .share-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+        .share-modal.active{display:flex;}
+        .share-content{background:#fff;padding:30px;border-radius:16px;max-width:440px;width:90%;box-shadow:0 10px 50px rgba(0,0,0,0.3);}
+        .share-content h3{margin-bottom:6px;color:#1a1a2e;font-size:19px;}
+        .share-content .share-subtitle{color:#666;font-size:13px;margin-bottom:15px;}
+        .share-content .share-url{background:#f5f5f5;padding:12px;border-radius:8px;word-break:break-all;font-size:12px;margin:10px 0;border:1px solid #e0e0e0;color:#333;}
+        .share-content .share-buttons{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;}
+        .share-content .share-buttons button{flex:1;min-width:80px;padding:10px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:0.3s;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;}
+        .share-content .share-buttons button:hover{transform:scale(1.03);}
+        .share-btn-copy{background:#1a73e8;color:#fff;}
+        .share-btn-twitter{background:#1da1f2;color:#fff;}
+        .share-btn-whatsapp{background:#25d366;color:#fff;}
+        .share-btn-close{background:#e0e0e0;color:#333;margin-top:10px;width:100%;padding:10px;border-radius:8px;border:none;cursor:pointer;font-weight:600;transition:0.3s;font-size:13px;}
+        .share-btn-close:hover{background:#d0d0d0;}
+        
+        .edit-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+        .edit-modal.active{display:flex;}
+        .edit-content{background:#fff;padding:30px;border-radius:16px;max-width:500px;width:90%;box-shadow:0 10px 50px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;}
+        .edit-content h3{margin-bottom:15px;color:#1a1a2e;font-size:20px;}
+        .edit-content label{display:block;font-weight:600;color:#333;margin-top:12px;font-size:14px;}
+        .edit-content input,.edit-content textarea{width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;font-size:14px;margin-top:5px;transition:0.3s;}
+        .edit-content input:focus,.edit-content textarea:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 3px rgba(26,115,232,0.1);}
+        .edit-content textarea{min-height:100px;resize:vertical;font-family:Arial,sans-serif;}
+        .edit-buttons{display:flex;gap:10px;margin-top:20px;}
+        .edit-buttons .btn{flex:1;}
+        
+        .info-box{background:#e3f2fd;border-left:4px solid #1a73e8;padding:12px 16px;border-radius:8px;margin-bottom:15px;}
+        .info-box p{color:#1a1a2e;font-size:13px;margin:4px 0;}
+        .info-box .highlight{font-weight:700;color:#1a73e8;}
+        
+        @media(max-width:768px){
+            .sidebar{width:200px;}
+            .main{margin-left:0;}
+            .main.expanded{margin-left:0;}
+            .sidebar.closed{left:-200px;}
+            .feed-tab{padding:12px 16px;font-size:13px;}
+            .video-grid,.blog-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));}
+            .health-banner{font-size:18px;padding:12px 18px;}
+            .upload-options{flex-direction:column;}
+            .upload-options .btn,.upload-options .btn-secondary{width:100%;}
+            .share-content{padding:20px;}
+            .upload-tabs{flex-wrap:wrap;}
+            .upload-tab{flex:1;text-align:center;padding:10px 12px;font-size:13px;}
+            .edit-content{padding:20px;}
+            .topbar{flex-direction:column;align-items:stretch;}
+            .role-selector{flex-wrap:wrap;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span>Health Hub</span>
+            <button class="close-btn" onclick="toggleSidebar()">×</button>
+        </div>
+        <div class="menu-item active" onclick="showPage('home', this)">
+            <span>🏠</span> Home
+        </div>
+        <div class="menu-item" onclick="showPage('upload', this)">
+            <span>📤</span> Upload
+        </div>
+        <div class="menu-item" onclick="showPage('favorite', this)">
+            <span>❤️</span> Favorites
+        </div>
+    </div>
+
+    <div class="main" id="mainContent">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="menu-icon" onclick="toggleSidebar()">☰</button>
+                <h2 id="pageTitle">Home</h2>
+            </div>
+            <div class="topbar-right">
+                <div class="role-selector">
+                    <label>👤 Role:</label>
+                    <select id="roleSelector" onchange="changeRole()">
+                        <option value="owner">👑 Owner</option>
+                        <option value="admin">🛡️ Admin</option>
+                        <option value="editor">✏️ Editor</option>
+                        <option value="user">👤 User</option>
+                    </select>
+                </div>
+                <div class="user-badge" id="userBadge">
+                    <span class="role-icon">👑</span>
+                    <span id="roleName">Owner</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="health-banner">
+            <span>💪</span> Health is everything
+        </div>
+
+        <!-- Home Page -->
+        <div class="page active" id="page-home">
+            <div class="feed-container">
+                <div class="feed-header">
+                    <button class="feed-tab active" onclick="switchFeedTab('videos', this)">
+                        🎬 Videos <span class="count" id="videoCount">(0)</span>
+                    </button>
+                    <button class="feed-tab" onclick="switchFeedTab('blogs', this)">
+                        📝 Blog Posts <span class="count" id="blogCount">(0)</span>
+                    </button>
+                </div>
+                
+                <div class="feed-content" id="feedVideos">
+                    <div class="video-grid" id="homeGrid"></div>
+                </div>
+                
+                <div class="feed-content hidden" id="feedBlogs">
+                    <div class="blog-grid" id="blogGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Page -->
+        <div class="page" id="page-upload">
+            <div class="upload-box">
+                <h2>📤 Create Content</h2>
+                <p class="subtitle">Upload videos or write blog posts</p>
+                
+                <div class="info-box" id="permissionInfo">
+                    <p>🔒 <span class="highlight">Owner</span> and <span class="highlight">Admin</span> can upload content.</p>
+                    <p>👤 <span class="highlight">Editors</span> can upload blog posts only.</p>
+                    <p>👤 <span class="highlight">Users</span> cannot upload content.</p>
+                </div>
+                
+                <div class="upload-tabs">
+                    <div class="upload-tab active" onclick="switchUploadTab('video', this)">🎬 Video</div>
+                    <div class="upload-tab" onclick="switchUploadTab('blog', this)">📝 Blog Post</div>
+                </div>
+                
+                <!-- Video Upload -->
+                <div class="upload-content active" id="videoUpload">
+                    <div id="videoUploadArea">
+                        <div class="upload-area" onclick="document.getElementById('vid').click()">
+                            <div class="icon">🎬</div>
+                            <h3>Upload Video</h3>
+                            <p>Click to select a video file or enter URL below</p>
+                        </div>
+                        
+                        <input type="file" id="vid" accept="video/*">
+                        
+                        <div style="margin-top:15px;">
+                            <div class="upload-options">
+                                <button class="btn-secondary" onclick="document.getElementById('vid').click()">📁 Choose File</button>
+                                <button class="btn-secondary" onclick="toggleUrlInput()">🔗 Enter URL</button>
+                            </div>
+                            
+                            <div class="url-input-container" id="urlInputContainer">
+                                <input type="text" id="videoUrlInput" placeholder="Enter video URL (e.g., https://example.com/video.mp4)">
+                                <button class="btn" style="margin-top:10px;width:100%;" onclick="loadUrlVideo()">Load from URL</button>
+                            </div>
+                        </div>
+                        
+                        <input type="text" id="videoTitle" class="title-input" placeholder="Enter video title...">
+                        
+                        <div id="msg"></div>
+                        <video id="videoPreview" controls></video>
+                        
+                        <button class="btn-success" style="display:none;margin-top:15px;width:100%;" id="publishBtn" onclick="publishVideo()">📤 Publish Video</button>
+                    </div>
+                    <div id="videoUploadBlocked" style="display:none;text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;">
+                        <div style="font-size:48px;">🚫</div>
+                        <h3 style="color:#c62828;margin-top:10px;">Access Denied</h3>
+                        <p style="color:#666;margin-top:5px;">You don't have permission to upload videos.</p>
+                        <p style="color:#888;font-size:13px;margin-top:5px;">Only <strong>Owner</strong> and <strong>Admin</strong> can upload videos.</p>
+                    </div>
+                </div>
+                
+                <!-- Blog Upload -->
+                <div class="upload-content" id="blogUpload">
+                    <div id="blogUploadArea">
+                        <div class="upload-area" onclick="document.getElementById('blogImage').click()">
+                            <div class="icon">📝</div>
+                            <h3>Write Blog Post</h3>
+                            <p>Click to select an image or enter URL below</p>
+                        </div>
+                        
+                        <input type="file" id="blogImage" accept="image/*">
+                        
+                        <div style="margin-top:15px;">
+                            <div class="upload-options">
+                                <button class="btn-secondary" onclick="document.getElementById('blogImage').click()">📁 Choose Image</button>
+                                <button class="btn-secondary" onclick="toggleBlogUrlInput()">🔗 Image URL</button>
+                            </div>
+                            
+                            <div class="url-input-container" id="blogUrlInputContainer">
+                                <input type="text" id="blogImageUrl" placeholder="Enter image URL (e.g., https://example.com/image.jpg)">
+                            </div>
+                        </div>
+                        
+                        <input type="text" id="blogTitle" class="title-input" placeholder="Enter blog post title...">
+                        <textarea id="blogDescription" class="description-input" placeholder="Write your blog post description here... (Long content supported)"></textarea>
+                        
+                        <div id="blogMsg" style="margin-top:10px;"></div>
+                        
+                        <button class="btn-success" style="margin-top:15px;width:100%;" onclick="publishBlog()">📤 Publish Blog Post</button>
+                    </div>
+                    <div id="blogUploadBlocked" style="display:none;text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;">
+                        <div style="font-size:48px;">🚫</div>
+                        <h3 style="color:#c62828;margin-top:10px;">Access Denied</h3>
+                        <p style="color:#666;margin-top:5px;">You don't have permission to publish blog posts.</p>
+                        <p style="color:#888;font-size:13px;margin-top:5px;">Only <strong>Owner</strong>, <strong>Admin</strong>, and <strong>Editor</strong> can publish blog posts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Favorite Page -->
+        <div class="page" id="page-favorite">
+            <h3 style="margin-bottom:15px;">❤️ Favorite Videos</h3>
+            <div class="video-grid" id="favGrid"></div>
+            <div class="empty-msg" id="emptyFav">No favorite videos yet.</div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="share-modal" id="shareModal">
+        <div class="share-content">
+            <h3>📤 Share</h3>
+            <p class="share-subtitle">Share this content with your friends</p>
+            <div class="share-url" id="shareUrlDisplay"></div>
+            <div class="share-buttons">
+                <button class="share-btn-copy" onclick="copyShareUrl()">📋 Copy</button>
+                <button class="share-btn-twitter" onclick="shareToTwitter()">🐦 Twitter</button>
+                <button class="share-btn-whatsapp" onclick="shareToWhatsApp()">💬 WhatsApp</button>
+            </div>
+            <button class="share-btn-close" onclick="closeShareModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-content">
+            <h3>✏️ Edit Blog Post</h3>
+            <label>Title</label>
+            <input type="text" id="editTitle" placeholder="Enter title...">
+            <label>Description</label>
+            <textarea id="editDescription" placeholder="Enter description..."></textarea>
+            <div class="edit-buttons">
+                <button class="btn-success" onclick="saveEdit()">💾 Save Changes</button>
+                <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+            <div id="editMsg" style="margin-top:10px;font-weight:500;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // DATA STORAGE
+        // ============================================
+        let videos = [];
+        let favorites = [];
+        let blogs = [];
+        let currentUpload = null;
+        let currentBlogUpload = null;
+        let currentShareId = null;
+        let currentShareType = null;
+        let currentFeedTab = 'videos';
+        let editingBlogId = null;
+        
+        // ============================================
+        // USER ROLE SYSTEM
+        // ============================================
+        let userRole = 'owner'; // owner, admin, editor, user
+        
+        const rolePermissions = {
+            owner: {
+                name: 'Owner',
+                icon: '👑',
+                canUploadVideo: true,
+                canUploadBlog: true,
+                canDeleteVideo: true,
+                canDeleteBlog: true,
+                canEditBlog: true,
+                canDeleteAny: true,
+                canEditAny: true,
+                badgeClass: 'badge-owner',
+                blogBadgeClass: 'blog-badge-owner'
+            },
+            admin: {
+                name: 'Admin',
+                icon: '🛡️',
+                canUploadVideo: true,
+                canUploadBlog: true,
+                canDeleteVideo: true,
+                canDeleteBlog: true,
+                canEditBlog: true,
+                canDeleteAny: true,
+                canEditAny: true,
+                badgeClass: 'badge-admin',
+                blogBadgeClass: 'blog-badge-admin'
+            },
+            editor: {
+                name: 'Editor',
+                icon: '✏️',
+                canUploadVideo: false,
+                canUploadBlog: true,
+                canDeleteVideo: false,
+                canDeleteBlog: false,
+                canEditBlog: true,
+                canDeleteAny: false,
+                canEditAny: false,
+                badgeClass: 'badge-editor',
+                blogBadgeClass: 'blog-badge-editor'
+            },
+            user: {
+                name: 'User',
+                icon: '👤',
+                canUploadVideo: false,
+                canUploadBlog: false,
+                canDeleteVideo: false,
+                canDeleteBlog: false,
+                canEditBlog: false,
+                canDeleteAny: false,
+                canEditAny: false,
+                badgeClass: 'badge-user',
+                blogBadgeClass: 'blog-badge-user'
+            }
+        };
+
+        function changeRole() {
+            var select = document.getElementById('roleSelector');
+            userRole = select.value;
+            
+            var role = rolePermissions[userRole];
+            document.getElementById('roleName').textContent = role.name;
+            document.getElementById('userBadge').querySelector('.role-icon').textContent = role.icon;
+            
+            updateUploadPermissions();
+            renderHome();
+            renderFavorites();
+        }
+
+        function updateUploadPermissions() {
+            var role = rolePermissions[userRole];
+            
+            // Video Upload
+            if(role.canUploadVideo) {
+                document.getElementById('videoUploadArea').style.display = 'block';
+                document.getElementById('videoUploadBlocked').style.display = 'none';
+            } else {
+                document.getElementById('videoUploadArea').style.display = 'none';
+                document.getElementById('videoUploadBlocked').style.display = 'block';
+            }
+            
+            // Blog Upload
+            if(role.canUploadBlog) {
+                document.getElementById('blogUploadArea').style.display = 'block';
+                document.getElementById('blogUploadBlocked').style.display = 'none';
+            } else {
+                document.getElementById('blogUploadArea').style.display = 'none';
+                document.getElementById('blogUploadBlocked').style.display = 'block';
+            }
+        }
+
+        function canDeleteVideoContent(video) {
+            var role = rolePermissions[userRole];
+            if(role.canDeleteAny) return true;
+            if(role.canDeleteVideo && video.uploadedBy === userRole) return true;
+            return false;
+        }
+
+        function canDeleteBlogContent(blog) {
+            var role = rolePermissions[userRole];
+            if(role.canDeleteAny) return true;
+            if(role.canDeleteBlog && blog.uploadedBy === userRole) return true;
+            return false;
+        }
+
+        function canEditBlogContent(blog) {
+            var role = rolePermissions[userRole];
+            if(role.canEditAny) return true;
+            if(role.canEditBlog && blog.uploadedBy === userRole) return true;
+            return false;
+        }
+
+        function getUserBadge(role) {
+            var r = rolePermissions[role] || rolePermissions['user'];
+            return '<span class="badge ' + r.badgeClass + '">' + r.icon + ' ' + r.name + '</span>';
+        }
+
+        function getBlogBadge(role) {
+            var r = rolePermissions[role] || rolePermissions['user'];
+            return '<span class="blog-badge ' + r.blogBadgeClass + '">' + r.icon + ' ' + r.name + '</span>';
+        }
+
+        // ============================================
+        // UI FUNCTIONS
+        // ============================================
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('closed');
+            document.getElementById('mainContent').classList.toggle('expanded');
+        }
+
+        function showPage(page, menuItem) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            if(menuItem) menuItem.classList.add('active');
+            
+            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            document.getElementById('pageTitle').textContent = 
+                page === 'home' ? 'Home' : 
+                page === 'upload' ? 'Upload' : 'Favorites';
+            
+            if(window.innerWidth <= 768) toggleSidebar();
+        }
+
+        // ============================================
+        // FEED TAB SWITCHER
+        // ============================================
+        function switchFeedTab(tab, element) {
+            currentFeedTab = tab;
+            document.querySelectorAll('.feed-tab').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            
+            document.getElementById('feedVideos').classList.add('hidden');
+            document.getElementById('feedBlogs').classList.add('hidden');
+            
+            if(tab === 'videos') {
+                document.getElementById('feedVideos').classList.remove('hidden');
+            } else {
+                document.getElementById('feedBlogs').classList.remove('hidden');
+            }
+        }
+
+        // ============================================
+        // UPLOAD TABS
+        // ============================================
+        function switchUploadTab(tab, element) {
+            document.querySelectorAll('.upload-tab').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            
+            document.querySelectorAll('.upload-content').forEach(el => el.classList.remove('active'));
+            if(tab === 'video') {
+                document.getElementById('videoUpload').classList.add('active');
+            } else {
+                document.getElementById('blogUpload').classList.add('active');
+            }
+        }
+
+        // ============================================
+        // VIDEO UPLOAD FUNCTIONS
+        // ============================================
+        function toggleUrlInput() {
+            var container = document.getElementById('urlInputContainer');
+            container.style.display = container.style.display === 'none' || container.style.display === '' ? 'block' : 'none';
+        }
+
+        function loadUrlVideo() {
+            var url = document.getElementById('videoUrlInput').value.trim();
+            if(!url) {
+                document.getElementById('msg').className = 'err';
+                document.getElementById('msg').textContent = '❌ Please enter a valid URL';
+                return;
+            }
+            
+            var v = document.getElementById('videoPreview');
+            var pb = document.getElementById('publishBtn');
+            var titleInput = document.getElementById('videoTitle');
+            
+            var fileName = url.split('/').pop() || 'video.mp4';
+            currentUpload = { 
+                file: null, 
+                url: url, 
+                name: fileName, 
+                size: 0,
+                isUrl: true 
+            };
+            
+            v.src = url;
+            v.style.display = 'block';
+            v.load();
+            pb.style.display = 'block';
+            titleInput.value = fileName.replace(/\.[^/.]+$/, '');
+            
+            document.getElementById('msg').className = 'ok';
+            document.getElementById('msg').textContent = '✅ Video loaded from URL';
+        }
+
+        document.getElementById('vid').addEventListener('change', function(e) {
+            var f = e.target.files[0];
+            var m = document.getElementById('msg');
+            var v = document.getElementById('videoPreview');
+            var pb = document.getElementById('publishBtn');
+            var titleInput = document.getElementById('videoTitle');
+            
+            if(f) {
+                if(f.type.startsWith('video/')) {
+                    m.className = 'ok';
+                    var sizeStr = formatSize(f.size);
+                    m.textContent = '✅ Ready: ' + f.name + ' (' + sizeStr + ')';
+                    var url = URL.createObjectURL(f);
+                    v.src = url;
+                    v.style.display = 'block';
+                    v.load();
+                    pb.style.display = 'block';
+                    titleInput.value = f.name.replace(/\.[^/.]+$/, '');
+                    currentUpload = { file: f, url: url, name: f.name, size: f.size, isUrl: false };
+                } else {
+                    m.className = 'err';
+                    m.textContent = '❌ Please select a valid video file.';
+                    v.style.display = 'none';
+                    v.src = '';
+                    pb.style.display = 'none';
+                    currentUpload = null;
+                }
+            }
+        });
+
+        function formatSize(bytes) {
+            if(bytes === 0) return '0 B';
+            var k = 1024;
+            var sizes = ['B', 'KB', 'MB', 'GB'];
+            var i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function detectAspect(videoElement, callback) {
+            if(videoElement.readyState >= 2) {
+                var w = videoElement.videoWidth;
+                var h = videoElement.videoHeight;
+                var ratio = w / h;
+                var isShort = ratio < 0.8;
+                if(ratio > 1.3) callback('16:9', 'landscape', isShort);
+                else if(ratio < 0.8) callback('9:16', 'portrait', isShort);
+                else callback('1:1', 'square', isShort);
+            } else {
+                videoElement.addEventListener('loadedmetadata', function() {
+                    var w = this.videoWidth;
+                    var h = this.videoHeight;
+                    var ratio = w / h;
+                    var isShort = ratio < 0.8;
+                    if(ratio > 1.3) callback('16:9', 'landscape', isShort);
+                    else if(ratio < 0.8) callback('9:16', 'portrait', isShort);
+                    else callback('1:1', 'square', isShort);
+                });
+            }
+        }
+
+        function generateThumbnail(videoElement, callback) {
+            if(!videoElement) return callback(null);
+            
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var seekTime = Math.min(1, videoElement.duration * 0.1);
+            
+            videoElement.currentTime = seekTime;
+            videoElement.addEventListener('seeked', function onSeeked() {
+                videoElement.removeEventListener('seeked', onSeeked);
+                
+                var w = videoElement.videoWidth;
+                var h = videoElement.videoHeight;
+                var maxWidth = 320;
+                var ratio = maxWidth / w;
+                canvas.width = maxWidth;
+                canvas.height = h * ratio;
+                
+                ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                callback(canvas.toDataURL('image/jpeg', 0.7));
+            });
+            
+            setTimeout(function() {
+                videoElement.removeEventListener('seeked', onSeeked);
+                if(!callback.called) {
+                    callback(null);
+                    callback.called = true;
+                }
+            }, 3000);
+        }
+
+        function publishVideo() {
+            if(!currentUpload) return;
+            
+            var role = rolePermissions[userRole];
+            if(!role.canUploadVideo) {
+                alert('You don\'t have permission to upload videos.');
+                return;
+            }
+            
+            var titleInput = document.getElementById('videoTitle');
+            var videoTitle = titleInput.value.trim() || currentUpload.name.replace(/\.[^/.]+$/, '');
+            
+            var newVideo = {
+                id: Date.now(),
+                name: currentUpload.name,
+                title: videoTitle,
+                url: currentUpload.isUrl ? currentUpload.url : '',
+                size: currentUpload.size || 0,
+                favorite: false,
+                aspect: 'Loading...',
+                isShort: false,
+                thumbnail: null,
+                isUrl: currentUpload.isUrl || false,
+                uploadedBy: userRole,
+                timestamp: new Date().toISOString()
+            };
+            
+            if(!currentUpload.isUrl && currentUpload.file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    newVideo.url = e.target.result;
+                    processVideo(newVideo);
+                };
+                reader.readAsDataURL(currentUpload.file);
+            } else if(currentUpload.isUrl) {
+                processVideo(newVideo);
+            }
+        }
+
+        function processVideo(newVideo) {
+            var tempVideo = document.createElement('video');
+            tempVideo.src = newVideo.url;
+            tempVideo.muted = true;
+            tempVideo.preload = 'metadata';
+            
+            tempVideo.addEventListener('loadedmetadata', function() {
+                detectAspect(tempVideo, function(ratio, orientation, isShort) {
+                    newVideo.aspect = ratio;
+                    newVideo.isShort = isShort;
+                    
+                    if(!isShort && ratio >= 0.8) {
+                        generateThumbnail(tempVideo, function(thumbnailData) {
+                            newVideo.thumbnail = thumbnailData;
+                            finalizePublish(newVideo);
+                        });
+                    } else {
+                        newVideo.thumbnail = null;
+                        finalizePublish(newVideo);
+                    }
+                });
+            });
+            
+            setTimeout(function() {
+                if(!newVideo.aspect || newVideo.aspect === 'Loading...') {
+                    newVideo.aspect = '16:9';
+                    newVideo.isShort = false;
+                    finalizePublish(newVideo);
+                }
+            }, 5000);
+        }
+
+        function finalizePublish(newVideo) {
+            videos.push(newVideo);
+            renderHome();
+            renderFavorites();
+            
+            document.getElementById('vid').value = '';
+            document.getElementById('videoPreview').style.display = 'none';
+            document.getElementById('videoPreview').src = '';
+            document.getElementById('publishBtn').style.display = 'none';
+            document.getElementById('videoTitle').value = '';
+            document.getElementById('urlInputContainer').style.display = 'none';
+            document.getElementById('videoUrlInput').value = '';
+            document.getElementById('msg').textContent = '✅ Video published successfully!';
+            document.getElementById('msg').className = 'ok';
+            currentUpload = null;
+            
+            showPage('home', document.querySelector('.menu-item'));
+        }
+
+        // ============================================
+        // BLOG UPLOAD FUNCTIONS
+        // ============================================
+        function toggleBlogUrlInput() {
+            var container = document.getElementById('blogUrlInputContainer');
+            container.style.display = container.style.display === 'none' || container.style.display === '' ? 'block' : 'none';
+        }
+
+        document.getElementById('blogImage').addEventListener('change', function(e) {
+            var f = e.target.files[0];
+            var msg = document.getElementById('blogMsg');
+            if(f) {
+                if(f.type.startsWith('image/')) {
+                    msg.className = 'ok';
+                    msg.textContent = '✅ Image selected: ' + f.name;
+                    var url = URL.createObjectURL(f);
+                    currentBlogUpload = { file: f, url: url, name: f.name, isUrl: false };
+                } else {
+                    msg.className = 'err';
+                    msg.textContent = '❌ Please select a valid image file.';
+                    currentBlogUpload = null;
+                }
+            }
+        });
+
+        function loadBlogImageUrl() {
+            var url = document.getElementById('blogImageUrl').value.trim();
+            var msg = document.getElementById('blogMsg');
+            if(!url) {
+                msg.className = 'err';
+                msg.textContent = '❌ Please enter a valid image URL';
+                return;
+            }
+            
+            var img = new Image();
+            img.onload = function() {
+                currentBlogUpload = { file: null, url: url, name: url.split('/').pop() || 'image.jpg', isUrl: true };
+                msg.className = 'ok';
+                msg.textContent = '✅ Image loaded from URL';
+            };
+            img.onerror = function() {
+                msg.className = 'err';
+                msg.textContent = '❌ Failed to load image from URL';
+            };
+            img.src = url;
+        }
+
+        document.getElementById('blogImageUrl').addEventListener('change', loadBlogImageUrl);
+        document.getElementById('blogImageUrl').addEventListener('blur', loadBlogImageUrl);
+
+        function publishBlog() {
+            var role = rolePermissions[userRole];
+            if(!role.canUploadBlog) {
+                alert('You don\'t have permission to publish blog posts.');
+                return;
+            }
+            
+            var title = document.getElementById('blogTitle').value.trim();
+            var description = document.getElementById('blogDescription').value.trim();
+            var msg = document.getElementById('blogMsg');
+            
+            if(!title) {
+                msg.className = 'err';
+                msg.textContent = '❌ Please enter a title';
+                return;
+            }
+            
+            if(!description) {
+                msg.className = 'err';
+                msg.textContent = '❌ Please enter a description';
+                return;
+            }
+            
+            if(!currentBlogUpload) {
+                msg.className = 'err';
+                msg.textContent = '❌ Please select an image';
+                return;
+            }
+            
+            var newBlog = {
+                id: Date.now(),
+                title: title,
+                description: description,
+                imageUrl: currentBlogUpload.isUrl ? currentBlogUpload.url : '',
+                imageName: currentBlogUpload.name,
+                isUrl: currentBlogUpload.isUrl || false,
+                uploadedBy: userRole,
+                timestamp: new Date().toISOString()
+            };
+            
+            if(!currentBlogUpload.isUrl && currentBlogUpload.file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    newBlog.imageUrl = e.target.result;
+                    finalizeBlogPublish(newBlog);
+                };
+                reader.readAsDataURL(currentBlogUpload.file);
+            } else if(currentBlogUpload.isUrl) {
+                finalizeBlogPublish(newBlog);
+            }
+        }
+
+        function finalizeBlogPublish(newBlog) {
+            blogs.push(newBlog);
+            renderHome();
+            
+            document.getElementById('blogImage').value = '';
+            document.getElementById('blogImageUrl').value = '';
+            document.getElementById('blogTitle').value = '';
+            document.getElementById('blogDescription').value = '';
+            document.getElementById('blogUrlInputContainer').style.display = 'none';
+            document.getElementById('blogMsg').textContent = '✅ Blog post published successfully!';
+            document.getElementById('blogMsg').className = 'ok';
+            currentBlogUpload = null;
+            
+            showPage('home', document.querySelector('.menu-item'));
+        }
+
+        // ============================================
+        // BLOG DELETE & EDIT FUNCTIONS
+        // ============================================
+        function deleteBlog(id) {
+            var blog = null;
+            for(var i = 0; i < blogs.length; i++) {
+                if(blogs[i].id === id) {
+                    blog = blogs[i];
+                    break;
+                }
+            }
+            
+            if(!blog) {
+                alert('Blog post not found!');
+                return;
+            }
+            
+            if(!canDeleteBlogContent(blog)) {
+                alert('You don\'t have permission to delete this blog post.');
+                return;
+            }
+            
+            if(confirm('Delete this blog post?')) {
+                var newBlogs = [];
+                for(var i = 0; i < blogs.length; i++) {
+                    if(blogs[i].id !== id) {
+                        newBlogs.push(blogs[i]);
+                    }
+                }
+                blogs = newBlogs;
+                renderHome();
+                alert('Blog post deleted successfully!');
+            }
+        }
+
+        function editBlog(id) {
+            var blog = null;
+            for(var i = 0; i < blogs.length; i++) {
+                if(blogs[i].id === id) {
+                    blog = blogs[i];
+                    break;
+                }
+            }
+            
+            if(!blog) {
+                alert('Blog post not found!');
+                return;
+            }
+            
+            if(!canEditBlogContent(blog)) {
+                alert('You don\'t have permission to edit this blog post.');
+                return;
+            }
+            
+            editingBlogId = id;
+            document.getElementById('editTitle').value = blog.title;
+            document.getElementById('editDescription').value = blog.description;
+            document.getElementById('editMsg').textContent = '';
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function saveEdit() {
+            var title = document.getElementById('editTitle').value.trim();
+            var description = document.getElementById('editDescription').value.trim();
+            var msg = document.getElementById('editMsg');
+            
+            if(!title) {
+                msg.className = 'err';
+                msg.textContent = '❌ Please enter a title';
+                return;
+            }
+            
+            if(!description) {
+                msg.className = 'err';
+                msg.textContent = '❌ Please enter a description';
+                return;
+            }
+            
+            for(var i = 0; i < blogs.length; i++) {
+                if(blogs[i].id === editingBlogId) {
+                    blogs[i].title = title;
+                    blogs[i].description = description;
+                    break;
+                }
+            }
+            
+            renderHome();
+            closeEditModal();
+            alert('Blog post updated successfully!');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            editingBlogId = null;
+            document.getElementById('editTitle').value = '';
+            document.getElementById('editDescription').value = '';
+            document.getElementById('editMsg').textContent = '';
+        }
+
+        function toggleReadMore(blogId) {
+            var fullDesc = document.getElementById('fullDesc-' + blogId);
+            var btn = document.getElementById('readMoreBtn-' + blogId);
+            if(fullDesc.classList.contains('show')) {
+                fullDesc.classList.remove('show');
+                btn.textContent = 'Read More...';
+            } else {
+                fullDesc.classList.add('show');
+                btn.textContent = 'Show Less';
+            }
+        }
+
+        // ============================================
+        // SHARE FUNCTIONS
+        // ============================================
+        function shareContent(id, type) {
+            currentShareId = id;
+            currentShareType = type;
+            
+            var content = null;
+            if(type === 'video') {
+                for(var i = 0; i < videos.length; i++) {
+                    if(videos[i].id === id) {
+                        content = videos[i];
+                        break;
+                    }
+                }
+            } else if(type === 'blog') {
+                for(var i = 0; i < blogs.length; i++) {
+                    if(blogs[i].id === id) {
+                        content = blogs[i];
+                        break;
+                    }
+                }
+            }
+            
+            if(content) {
+                var shareUrl = window.location.href.split('?')[0] + '?' + type + '=' + id;
+                document.getElementById('shareUrlDisplay').textContent = shareUrl;
+                document.getElementById('shareModal').classList.add('active');
+                if(type === 'video') {
+                    closeDropdown(id);
+                }
+            }
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.remove('active');
+            currentShareId = null;
+            currentShareType = null;
+        }
+
+        function copyShareUrl() {
+            var url = document.getElementById('shareUrlDisplay').textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    alert('URL copied to clipboard!');
+                }).catch(function() {
+                    var textarea = document.createElement('textarea');
+                    textarea.value = url;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    alert('URL copied to clipboard!');
+                });
+            } else {
+                var textarea = document.createElement('textarea');
+                textarea.value = url;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('URL copied to clipboard!');
+            }
+        }
+
+        function shareToTwitter() {
+            var url = document.getElementById('shareUrlDisplay').textContent;
+            var content = null;
+            if(currentShareType === 'video') {
+                for(var i = 0; i < videos.length; i++) {
+                    if(videos[i].id === currentShareId) {
+                        content = videos[i];
+                        break;
+                    }
+                }
+            } else if(currentShareType === 'blog') {
+                for(var i = 0; i < blogs.length; i++) {
+                    if(blogs[i].id === currentShareId) {
+                        content = blogs[i];
+                        break;
+                    }
+                }
+            }
+            var text = content ? 'Check this out: ' + (content.title || '') : 'Check this out';
+            window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+        }
+
+        function shareToWhatsApp() {
+            var url = document.getElementById('shareUrlDisplay').textContent;
+            window.open('https://wa.me/?text=' + encodeURIComponent('Check this out: ' + url), '_blank');
+        }
+
+        // ============================================
+        // VIDEO FUNCTIONS
+        // ============================================
+        function downloadVideo(id) {
+            var video = null;
+            for(var i = 0; i < videos.length; i++) {
+                if(videos[i].id === id) {
+                    video = videos[i];
+                    break;
+                }
+            }
+            
+            if(!video) {
+                alert('Video not found!');
+                return;
+            }
+            
+            try {
+                var fileName = video.name || 'video.mp4';
+                
+                if(video.isUrl) {
+                    fetch(video.url)
+                        .then(function(response) {
+                            return response.blob();
+                        })
+                        .then(function(blob) {
+                            var url = URL.createObjectURL(blob);
+                            var link = document.createElement('a');
+                            link.href = url;
+                            link.download = fileName;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            setTimeout(function() {
+                                URL.revokeObjectURL(url);
+                            }, 5000);
+                        })
+                        .catch(function() {
+                            window.open(video.url, '_blank');
+                        });
+                    return;
+                }
+                
+                var link = document.createElement('a');
+                link.href = video.url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+            } catch(e) {
+                alert('Download error: ' + e.message);
+            }
+        }
+
+        function deleteVideo(id) {
+            var video = null;
+            for(var i = 0; i < videos.length; i++) {
+                if(videos[i].id === id) {
+                    video = videos[i];
+                    break;
+                }
+            }
+            
+            if(!video) {
+                alert('Video not found!');
+                return;
+            }
+            
+            if(!canDeleteVideoContent(video)) {
+                alert('You don\'t have permission to delete this video.');
+                return;
+            }
+            
+            if(confirm('Delete this video?')) {
+                var newVideos = [];
+                for(var i = 0; i < videos.length; i++) {
+                    if(videos[i].id !== id) {
+                        newVideos.push(videos[i]);
+                    }
+                }
+                videos = newVideos;
+                
+                var newFavorites = [];
+                for(var i = 0; i < favorites.length; i++) {
+                    if(favorites[i].id !== id) {
+                        newFavorites.push(favorites[i]);
+                    }
+                }
+                favorites = newFavorites;
+                
+                renderHome();
+                renderFavorites();
+                closeDropdown(id);
+                alert('Video deleted successfully!');
+            }
+        }
+
+        function toggleDropdown(id) {
+            var dropdown = document.getElementById('dropdown-' + id);
+            if(dropdown) {
+                if(dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                } else {
+                    var allDropdowns = document.querySelectorAll('.dropdown-content');
+                    for(var i = 0; i < allDropdowns.length; i++) {
+                        allDropdowns[i].classList.remove('show');
+                    }
+                    dropdown.classList.add('show');
+                }
+            }
+        }
+
+        function closeDropdown(id) {
+            var dropdown = document.getElementById('dropdown-' + id);
+            if(dropdown) {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            if(!e.target.closest('.dropdown-menu')) {
+                var allDropdowns = document.querySelectorAll('.dropdown-content');
+                for(var i = 0; i < allDropdowns.length; i++) {
+                    allDropdowns[i].classList.remove('show');
+                }
+            }
+        });
+
+        function toggleVideoPlay(videoElement) {
+            if(videoElement.paused) {
+                videoElement.play();
+            } else {
+                videoElement.pause();
+            }
+        }
+
+        function toggleFavorite(id) {
+            var video = null;
+            for(var i = 0; i < videos.length; i++) {
+                if(videos[i].id === id) {
+                    video = videos[i];
+                    break;
+                }
+            }
+            
+            if(video) {
+                video.favorite = !video.favorite;
+                if(video.favorite) {
+                    var exists = false;
+                    for(var i = 0; i < favorites.length; i++) {
+                        if(favorites[i].id === id) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if(!exists) {
+                        favorites.push(video);
+                    }
+                } else {
+                    var newFavorites = [];
+                    for(var i = 0; i < favorites.length; i++) {
+                        if(favorites[i].id !== id) {
+                            newFavorites.push(favorites[i]);
+                        }
+                    }
+                    favorites = newFavorites;
+                }
+                renderHome();
+                renderFavorites();
+            }
+        }
+
+        // ============================================
+        // RENDER FUNCTIONS
+        // ============================================
+        function renderHome() {
+            // Render Videos
+            var videoGrid = document.getElementById('homeGrid');
+            var videoCount = document.getElementById('videoCount');
+            videoCount.textContent = '(' + videos.length + ')';
+            
+            if(videos.length === 0) {
+                videoGrid.innerHTML = '<div class="empty-msg">No videos uploaded yet. Go to Upload to add some!</div>';
+            } else {
+                var vHtml = '';
+                for(var i = 0; i < videos.length; i++) {
+                    var v = videos[i];
+                    var isFavorited = v.favorite ? 'favorited' : '';
+                    var favIcon = v.favorite ? '❤️' : '🤍';
+                    var userBadge = getUserBadge(v.uploadedBy || 'user');
+                    var canDelete = canDeleteVideoContent(v);
+                    var deleteOption = canDelete ? 
+                        '<button class="dropdown-item danger" onclick="event.stopPropagation();deleteVideo(' + v.id + ');"><span class="icon">🗑️</span> Delete</button>' : 
+                        '<button class="dropdown-item disabled" onclick="event.stopPropagation();"><span class="icon">🔒</span> Delete (No Permission)</button>';
+                    var thumbnailHtml = '';
+                    if(!v.isShort && v.thumbnail) {
+                        thumbnailHtml = '<div class="thumbnail-overlay"><img src="' + v.thumbnail + '" alt="Thumbnail"><div class="play-icon">▶</div></div>';
+                    }
+                    
+                    vHtml += '<div class="video-card" data-id="' + v.id + '">';
+                    vHtml += '<div class="video-wrapper" onclick="toggleVideoPlay(this.querySelector(\'video\'))">';
+                    vHtml += '<video src="' + v.url + '" controls preload="metadata"></video>';
+                    vHtml += thumbnailHtml;
+                    vHtml += '</div>';
+                    vHtml += '<div class="info">';
+                    vHtml += '<div class="title-row">';
+                    vHtml += '<span class="title">' + (v.title || v.name) + '</span>';
+                    vHtml += '<div class="video-actions">';
+                    vHtml += '<button class="action-btn download-btn" onclick="event.stopPropagation();downloadVideo(' + v.id + ')" title="Download">⬇️</button>';
+                    vHtml += '<button class="action-btn share-btn" onclick="event.stopPropagation();shareContent(' + v.id + ', \'video\')" title="Share">↗</button>';
+                    vHtml += '<button class="fav-btn ' + isFavorited + '" onclick="event.stopPropagation();toggleFavorite(' + v.id + ')">' + favIcon + '</button>';
+                    vHtml += '<div class="dropdown-menu">';
+                    vHtml += '<button class="action-btn" onclick="event.stopPropagation();toggleDropdown(' + v.id + ')" title="More">⋮</button>';
+                    vHtml += '<div class="dropdown-content" id="dropdown-' + v.id + '">';
+                    vHtml += '<button class="dropdown-item" onclick="event.stopPropagation();downloadVideo(' + v.id + ');closeDropdown(' + v.id + ')"><span class="icon">⬇️</span> Download</button>';
+                    vHtml += '<button class="dropdown-item" onclick="event.stopPropagation();shareContent(' + v.id + ', \'video\');closeDropdown(' + v.id + ')"><span class="icon">↗</span> Share</button>';
+                    vHtml += deleteOption;
+                    vHtml += '</div></div></div></div>';
+                    vHtml += '<div class="meta-row">';
+                    vHtml += '<div class="meta">';
+                    vHtml += '<span class="size">' + formatSize(v.size) + '</span>';
+                    vHtml += '<span class="aspect">' + (v.aspect || '16:9') + ' ' + (v.isShort ? '📱' : '📺') + '</span>';
+                    vHtml += userBadge;
+                    vHtml += '</div>';
+                    vHtml += '<span style="font-size:10px;color:#999;">' + (v.timestamp ? new Date(v.timestamp).toLocaleDateString() : '') + '</span>';
+                    vHtml += '</div></div></div>';
+                }
+                videoGrid.innerHTML = vHtml;
+            }
+            
+            // Render Blogs
+            var blogGrid = document.getElementById('blogGrid');
+            var blogCount = document.getElementById('blogCount');
+            blogCount.textContent = '(' + blogs.length + ')';
+            
+            if(blogs.length === 0) {
+                blogGrid.innerHTML = '<div class="empty-msg">No blog posts yet. Go to Upload to create one!</div>';
+            } else {
+                var bHtml = '';
+                for(var i = 0; i < blogs.length; i++) {
+                    var b = blogs[i];
+                    var shortDesc = b.description.substring(0, 120);
+                    var hasMore = b.description.length > 120;
+                    var userBadge = getBlogBadge(b.uploadedBy || 'user');
+                    var canDelete = canDeleteBlogContent(b);
+                    var canEdit = canEditBlogContent(b);
+                    
+                    var editDeleteButtons = '';
+                    if(canEdit) {
+                        editDeleteButtons += '<button class="btn btn-warning" style="flex:1;padding:6px;font-size:12px;" onclick="editBlog(' + b.id + ')">✏️ Edit</button>';
+                    }
+                    if(canDelete) {
+                        editDeleteButtons += '<button class="btn btn-danger" style="flex:1;padding:6px;font-size:12px;" onclick="deleteBlog(' + b.id + ')">🗑️ Delete</button>';
+                    }
+                    
+                    bHtml += '<div class="blog-card" data-id="' + b.id + '">';
+                    bHtml += '<div class="blog-image-wrapper">';
+                    bHtml += '<img class="blog-image" src="' + b.imageUrl + '" alt="' + b.title + '" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'400\\\' height=\\\'200\\\'%3E%3Crect width=\\\'400\\\' height=\\\'200\\\' fill=\\\'%23e0e0e0\\\'/%3E%3Ctext x=\\\'50%25\\\' y=\\\'50%25\\\' font-size=\\\'16\\\' text-anchor=\\\'middle\\\' dominant-baseline=\\\'central\\\' fill=\\\'%23999\\\'%3ENo Image%3C/text%3E%3C/svg%3E\'">';
+                    bHtml += '</div>';
+                    bHtml += '<div class="blog-content">';
+                    bHtml += '<div class="blog-title">' + b.title + '</div>';
+                    bHtml += '<div class="blog-description">' + shortDesc + (hasMore ? '...' : '') + '</div>';
+                    if(hasMore) {
+                        bHtml += '<div class="blog-full-description" id="fullDesc-' + b.id + '">' + b.description + '</div>';
+                        bHtml += '<button class="read-more-btn" id="readMoreBtn-' + b.id + '" onclick="toggleReadMore(' + b.id + ')">Read More...</button>';
+                    }
+                    bHtml += '<div class="blog-meta">';
+                    bHtml += '<span class="blog-date">📅 ' + new Date(b.timestamp).toLocaleDateString() + '</span>';
+                    bHtml += userBadge;
+                    bHtml += '</div>';
+                    bHtml += '<div class="blog-actions">';
+                    bHtml += '<button class="btn" style="flex:1;padding:6px;font-size:12px;background:#1a73e8;" onclick="shareContent(' + b.id + ', \'blog\')">↗ Share</button>';
+                    bHtml += editDeleteButtons;
+                    bHtml += '</div>';
+                    bHtml += '</div></div>';
+                }
+                blogGrid.innerHTML = bHtml;
+            }
+        }
+
+        function renderFavorites() {
+            var grid = document.getElementById('favGrid');
+            var empty = document.getElementById('emptyFav');
+            
+            if(favorites.length === 0) {
+                grid.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            
+            var html = '';
+            for(var i = 0; i < favorites.length; i++) {
+                var v = favorites[i];
+                var userBadge = getUserBadge(v.uploadedBy || 'user');
+                var canDelete = canDeleteVideoContent(v);
+                var deleteOption = canDelete ? 
+                    '<button class="dropdown-item danger" onclick="event.stopPropagation();deleteVideo(' + v.id + ');"><span class="icon">🗑️</span> Delete</button>' : 
+                    '<button class="dropdown-item disabled" onclick="event.stopPropagation();"><span class="icon">🔒</span> Delete (No Permission)</button>';
+                var thumbnailHtml = '';
+                if(!v.isShort && v.thumbnail) {
+                    thumbnailHtml = '<div class="thumbnail-overlay"><img src="' + v.thumbnail + '" alt="Thumbnail"><div class="play-icon">▶</div></div>';
+                }
+                
+                html += '<div class="video-card" data-id="' + v.id + '">';
+                html += '<div class="video-wrapper" onclick="toggleVideoPlay(this.querySelector(\'video\'))">';
+                html += '<video src="' + v.url + '" controls preload="metadata"></video>';
+                html += thumbnailHtml;
+                html += '</div>';
+                html += '<div class="info">';
+                html += '<div class="title-row">';
+                html += '<span class="title">' + (v.title || v.name) + '</span>';
+                html += '<div class="video-actions">';
+                html += '<button class="action-btn download-btn" onclick="event.stopPropagation();downloadVideo(' + v.id + ')" title="Download">⬇️</button>';
+                html += '<button class="action-btn share-btn" onclick="event.stopPropagation();shareContent(' + v.id + ', \'video\')" title="Share">↗</button>';
+                html += '<button class="fav-btn favorited" onclick="event.stopPropagation();toggleFavorite(' + v.id + ')">❤️</button>';
+                html += '<div class="dropdown-menu">';
+                html += '<button class="action-btn" onclick="event.stopPropagation();toggleDropdown(' + v.id + ')" title="More">⋮</button>';
+                html += '<div class="dropdown-content" id="dropdown-' + v.id + '">';
+                html += '<button class="dropdown-item" onclick="event.stopPropagation();downloadVideo(' + v.id + ');closeDropdown(' + v.id + ')"><span class="icon">⬇️</span> Download</button>';
+                html += '<button class="dropdown-item" onclick="event.stopPropagation();shareContent(' + v.id + ', \'video\');closeDropdown(' + v.id + ')"><span class="icon">↗</span> Share</button>';
+                html += deleteOption;
+                html += '</div></div></div></div>';
+                html += '<div class="meta-row">';
+                html += '<div class="meta">';
+                html += '<span class="size">' + formatSize(v.size) + '</span>';
+                html += '<span class="aspect">' + (v.aspect || '16:9') + ' ' + (v.isShort ? '📱' : '📺') + '</span>';
+                html += userBadge;
+                html += '</div>';
+                html += '<span style="font-size:10px;color:#999;">' + (v.timestamp ? new Date(v.timestamp).toLocaleDateString() : '') + '</span>';
+                html += '</div></div></div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        renderHome();
+        renderFavorites();
+        updateUploadPermissions();
+        
+        document.getElementById('shareModal').addEventListener('click', function(e) {
+            if(e.target === this) closeShareModal();
+        });
+        
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if(e.target === this) closeEditModal();
+        });
+    </script>
+</body>
+</html>
